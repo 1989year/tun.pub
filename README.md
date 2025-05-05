@@ -5,6 +5,9 @@ TUN·PUB
 官方网站
   https://tun.pub/
 
+编译成品
+  https://tun.pub/download/
+
 将 TUN·PUB 注册为系统服务
   https://tun.pub/docs/4672d1e4
 
