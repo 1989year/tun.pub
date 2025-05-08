@@ -1,10 +1,13 @@
-﻿using System.Net.Sockets;
+﻿using System.Collections.Concurrent;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 
 namespace tun.Models;
 
 public class Tunnel
 {
+    private static readonly ConcurrentDictionary<Guid, CancellationTokenSource> _tunnels = [];
+
     public string Server { get; set; }
 
     public Guid Token { get; set; }
@@ -15,7 +18,7 @@ public class Tunnel
 
     public void Stop()
     {
-        if (Worker.Tunnels.TryRemove(this.Token, out var cts)) {
+        if (_tunnels.TryRemove(this.Token, out var cts)) {
             try {
                 cts.Cancel();
             } catch (Exception) {
@@ -25,7 +28,7 @@ public class Tunnel
 
     public async Task StartAsync(CancellationToken stoppingToken)
     {
-        if (Worker.Tunnels.ContainsKey(this.Token)) {
+        if (_tunnels.ContainsKey(this.Token)) {
             return;
         }
         if (string.IsNullOrWhiteSpace(this.Server)) {
@@ -33,7 +36,7 @@ public class Tunnel
             this.Server = doh.First().Key;
         }
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        if (Worker.Tunnels.TryAdd(this.Token, cts)) {
+        if (_tunnels.TryAdd(this.Token, cts)) {
             try {
                 while (!cts.IsCancellationRequested) {
                     try {
@@ -47,7 +50,7 @@ public class Tunnel
                     }
                 }
             } finally {
-                Worker.Tunnels.TryRemove(this.Token, out _);
+                _tunnels.TryRemove(this.Token, out _);
             }
         }
     }
